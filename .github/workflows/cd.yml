@@ -36,3 +36,21 @@ jobs:
           context: ./01-api-gestao-eventos
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/taskflow:${{ github.sha }}
+
+      - name: Deploy na EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/taskflow:${{ github.sha }}
+
+            sudo docker stop taskflow || true
+            sudo docker rm taskflow || true
+
+            sudo docker run -d \
+              --name taskflow \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              ${{ secrets.DOCKERHUB_USERNAME }}/taskflow:${{ github.sha }}
